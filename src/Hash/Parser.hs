@@ -11,7 +11,8 @@ parser = parseSingle
 
 parseSingle = do
   spaces
-  cmd:args <- many1 (try exprNormalToken >>= (\tk -> spaces >> return tk))
+  cmd:args <- many1 $ do
+    tk <- try $ many1 (noneOf " |&;><")
+    spaces
+    return tk
   return $ Single cmd args
-  where
-    exprNormalToken = many1 $ noneOf " |&;><"
