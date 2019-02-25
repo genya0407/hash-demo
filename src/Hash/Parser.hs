@@ -7,8 +7,9 @@ import Hash.ShellAST (ShellAST(..))
 parseLine :: String -> Either ParseError ShellAST
 parseLine = parse parser ""
 
-parser = parseSingle
+parser = parseSingle `chainl1` parsePipe
 
+parsePipe = try $ string "|" >> (lookAhead . try $ noneOf "|") >> return Piped
 parseSingle = do
   spaces
   cmd:args <- many1 $ do
