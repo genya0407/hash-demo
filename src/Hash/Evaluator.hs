@@ -37,4 +37,25 @@ evalAST (input, output) (Piped leftAST rightAST) = do
     evalAST (input, writePipe) leftAST
     return ()
   hClose writePipe -- こちらのプロセスでは不要なので閉じる
+  -- 元プロセスで右のASTを実行
   evalAST (readPipe, output) rightAST
+
+evalAST handles (And leftAST rightAST) = do
+  exitcode <- evalAST handles leftAST
+  if exitcode == ExitSuccess
+  then
+    evalAST handles rightAST
+  else
+    return exitcode
+
+evalAST handles (Or leftAST rightAST) = do
+  exitcode <- evalAST handles leftAST
+  if exitcode == ExitSuccess
+  then
+    return exitcode
+  else
+    evalAST handles rightAST
+
+evalAST handles (Block leftAST rightAST) = do
+  evalAST handles leftAST
+  evalAST handles rightAST

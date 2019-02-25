@@ -11,9 +11,12 @@ import Safe (lastMay)
 parseLine :: String -> Either ParseError ShellAST
 parseLine = parse parser ""
 
-parser = parseSingle `chainl1` parsePipe
+parser = parseSingle `chainl1` parsePipe `chainl1` parseAnd `chainl1` parseOr `chainl1` parseSemi
 
 parsePipe = try $ string "|" >> (lookAhead . try $ noneOf "|") >> return Piped
+parseAnd = try $ string "&&" >> return And
+parseOr = try $ string "||" >> return Or
+parseSemi = try $ string ";" >> return Block
 
 data CmdToken = Stdin String | Stdout String | Stderr String | Other String deriving Show
 parseSingle = do
@@ -25,6 +28,7 @@ parseSingle = do
   let others = [cmd | Other cmd <- cmdTokens ]
   let cmd = head others
   let args = tail others
+  skipMany . try $ string ";" >> spaces >> eof
   return $ Single cmd args fnameStdin fnameStdout fnameStderr
   where
     parseStdin  = parseRedirect "<" Stdin
