@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: e9e6deedc5ecb8dd6c406756a529d8b03aa6fd51d05f0280e0080c721e269e35
+-- hash: 434841f7b81c53275f77999dbdf3d771790b316157371253ef731b128f5db54c
 
 name:           hash2
 version:        0.1.0.0
@@ -33,5 +33,6 @@ executable hash2
       base >=4.7 && <5
     , parsec
     , process
+    , safe
     , unix
   default-language: Haskell2010

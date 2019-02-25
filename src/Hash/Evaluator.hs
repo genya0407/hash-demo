@@ -2,19 +2,26 @@
 module Hash.Evaluator(evalAST) where
 
 import GHC.IO.Handle (Handle, hClose)
-import System.IO (stdout, stdin, stderr)
+import System.IO (stdout, stdin, stderr, openFile, IOMode(ReadMode, WriteMode))
 import System.Exit (ExitCode(..))
 import System.Process (createPipe)
+import Data.Maybe (fromMaybe)
 
 import System.Posix.Process (forkProcess, executeFile, getProcessStatus, ProcessStatus(..))
 import Hash.ShellAST (ShellAST(..))
 import Hash.Utils (forkWait, hDuplicateTo')
 
 evalAST :: (Handle, Handle) -> ShellAST -> IO ExitCode
-evalAST (input, output) (Single cmd args) = do
-  -- stdinとstdoutを差し替える
-  hDuplicateTo' input stdin
-  hDuplicateTo' output stdout
+evalAST (input, output) (Single cmd args fStdin fStdout fStderr) = do
+  -- stdinとstdoutとstderrを差し替える
+  input' <- fromMaybe (return input) (flip openFile ReadMode <$> fStdin)
+  hDuplicateTo' input' stdin
+
+  output' <- fromMaybe (return output) (flip openFile WriteMode <$> fStdout)
+  hDuplicateTo' output' stdout
+
+  err' <- fromMaybe (return stderr) (flip openFile WriteMode <$> fStderr)
+  hDuplicateTo' err' stderr
 
   let searchPath = not ('/' `elem` cmd)
   let env = Nothing

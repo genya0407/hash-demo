@@ -16,6 +16,7 @@ dependencies:
   - parsec
   - unix
   - process
+  - safe
 
 executables:
   hash2:
