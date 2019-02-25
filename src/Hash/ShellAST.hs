@@ -1,3 +1,5 @@
 module Hash.ShellAST(ShellAST(..)) where
 
-data ShellAST = Single String [String] deriving Show
+type Cmd = String
+type Args = [String]
+data ShellAST = Single Cmd Args deriving Show
