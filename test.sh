@@ -5,27 +5,26 @@ TEMPDIR=testtmp
 BIN="./$(stack path --dist-dir)/build/hash2/hash2"
 
 function assert() {
-    set +ue
     echo $1 | PROMPT="" $BIN > $TEMPDIR/result
     eval $1 > $TEMPDIR/correct
-    set -ue
+    set +ue
     cmp --silent $TEMPDIR/result $TEMPDIR/correct
     RET=$?
+    set -ue
     if [ $RET -eq 0 ] ;then
         echo "Success: $1"
     else
         echo "Failed: $1"
-        diff $TEMPDIR/correct tmp
         exit $RET
     fi
 }
 
 function assert_side_effect() {
-    set +ue
     echo $1 | PROMPT="" $BIN
     eval $2
-    set -ue
+    set +ue
     eval $3
+    set -ue
     RET=$?
     if [ $RET -eq 0 ] ;then
         echo "Success: $1"
@@ -47,6 +46,12 @@ function setup() {
 function clean() {
     echo "clean"
     rm -rf $TEMPDIR
+}
+
+trap catch ERR
+
+function catch() {
+    clean > /dev/null
 }
 
 echo "starting test"
