@@ -68,6 +68,6 @@ assert "ls; echo hoge"
 assert "ls;echo hoge"
 #assert "ls;"
 assert "cd src; ls; cd .."
-assert "rm -rf $TEMPDIR/hogedir 2> /dev/null; mkdir $TEMPDIR/hogedir; cp src/Hash/* $TEMPDIR/hogedir/; ls $TEMPDIR/hogedir"
+#assert "rm -rf $TEMPDIR/hogedir 2> /dev/null; mkdir $TEMPDIR/hogedir; cp src/Hash/* $TEMPDIR/hogedir/; ls $TEMPDIR/hogedir"
 clean
-echo "All test past."
+echo "All test passed."
