@@ -29,7 +29,6 @@ evalAST (input, output) (Single cmd args fStdin fStdout fStderr) = do
 
   let searchPath = not ('/' `elem` cmd)
   let env = Nothing
-  -- フォークして実行．ExitCodeを返す
   if cmd == "cd"
   then do
     home <- getEnv "HOME"
