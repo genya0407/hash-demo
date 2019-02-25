@@ -2,12 +2,16 @@
 module Hash.Evaluator(evalAST) where
 
 import GHC.IO.Handle (Handle, hClose)
-import System.IO (stdout, stdin, stderr, openFile, IOMode(ReadMode, WriteMode))
+import System.IO (stdout, stdin, stderr, hPutStrLn, openFile, IOMode(ReadMode, WriteMode))
 import System.Exit (ExitCode(..))
 import System.Process (createPipe)
-import Data.Maybe (fromMaybe)
-
+import System.Environment (getEnv)
+import System.Directory (setCurrentDirectory)
 import System.Posix.Process (forkProcess, executeFile, getProcessStatus, ProcessStatus(..))
+import Control.Exception (catch, IOException)
+import Data.Maybe (fromMaybe)
+import Safe (headMay)
+
 import Hash.ShellAST (ShellAST(..))
 import Hash.Utils (forkWait, hDuplicateTo')
 
@@ -26,8 +30,15 @@ evalAST (input, output) (Single cmd args fStdin fStdout fStderr) = do
   let searchPath = not ('/' `elem` cmd)
   let env = Nothing
   -- フォークして実行．ExitCodeを返す
-  exitcode <- forkWait $ executeFile cmd searchPath args env
-  return exitcode
+  if cmd == "cd"
+  then do
+    home <- getEnv "HOME"
+    let targetDir = fromMaybe home $ headMay args
+    let cd = setCurrentDirectory targetDir >> return ExitSuccess
+    let failed = hPutStrLn stderr ("cd: no such file or directory: " ++ targetDir) >> return (ExitFailure 1)
+    catch cd (\(_ :: IOException) -> failed)
+  else
+    forkWait $ executeFile cmd searchPath args env
 
 evalAST (input, output) (Piped leftAST rightAST) = do
   (readPipe, writePipe) <- createPipe

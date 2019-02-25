@@ -17,6 +17,7 @@ dependencies:
   - unix
   - process
   - safe
+  - directory
 
 executables:
   hash2:
