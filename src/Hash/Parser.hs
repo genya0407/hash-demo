@@ -5,7 +5,9 @@ import Text.Parsec.Char
 import Hash.ShellAST (ShellAST(..))
 
 parseLine :: String -> Either ParseError ShellAST
-parseLine = parse parseSingle ""
+parseLine = parse parser ""
+
+parser = parseSingle
 
 parseSingle = do
   spaces
