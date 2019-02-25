@@ -14,7 +14,7 @@ function assert() {
     if [ $RET -eq 0 ] ;then
         echo "Success: $1"
     else
-        echo "Failed: $1"
+        echo "Failed:  $1"
         clean
         exit $RET
     fi
@@ -25,12 +25,12 @@ function assert_side_effect() {
     echo $1 | PROMPT="" $BIN
     eval $2
     eval $3
-    set -ue
     RET=$?
+    set -ue
     if [ $RET -eq 0 ] ;then
         echo "Success: $1"
     else
-        echo "Failed: $1"
+        echo "Failed:  $1"
         clean
         exit $RET
     fi
@@ -56,6 +56,8 @@ assert "ls src"
 assert " ls  src "
 assert "ls | grep R"
 assert "ls|grep R"
+assert_side_effect "ls > $TEMPDIR/hoge" "ls > $TEMPDIR/fuga" "cmp --silent $TEMPDIR/hoge $TEMPDIR/fuga"
+assert "grep H < LICENSE"
 assert "ls && echo fuga"
 assert "ls&&echo fuga"
 assert "ls || echo hoge"
@@ -66,7 +68,6 @@ assert "ls;"
 assert_side_effect "ls > $TEMPDIR/hoge" "ls > $TEMPDIR/fuga" "cmp --silent $TEMPDIR/hoge $TEMPDIR/fuga"
 assert_side_effect "ls | grep R > $TEMPDIR/hoge" "ls | grep R > $TEMPDIR/fuga" "cmp --silent $TEMPDIR/hoge $TEMPDIR/fuga"
 assert_side_effect "cat notexistfile 2> $TEMPDIR/hoge" "cat notexistfile 2> $TEMPDIR/fuga" "cmp --silent $TEMPDIR/hoge $TEMPDIR/fuga"
-assert "grep H < LICENSE"
 assert "cd src; ls; cd .."
 assert "rm -rf $TEMPDIR/hogedir 2> /dev/null; mkdir $TEMPDIR/hogedir; cp src/Hash/* $TEMPDIR/hogedir/; ls $TEMPDIR/hogedir"
 clean
