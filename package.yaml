@@ -15,6 +15,7 @@ dependencies:
   - base >= 4.7 && < 5
   - parsec
   - unix
+  - process
 
 executables:
   hash2:

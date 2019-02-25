@@ -1,6 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Main where
 
+import GHC.IO.Handle (hDuplicate, hDuplicateTo)
 import System.Environment
 import System.IO
 import System.Exit
@@ -23,8 +24,12 @@ main = do
   case parseLine line of
     Left err -> print err
     Right expr -> do
-      evalAST expr
+      originalStdin <- hDuplicate stdin
+      originalStdout <- hDuplicate stdout
+      evalAST (stdin, stdout) expr
       hFlush stdout
+      hDuplicateTo originalStdin stdin
+      hDuplicateTo originalStdout stdout
 
   -- 始めに戻る
   main
