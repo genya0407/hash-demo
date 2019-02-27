@@ -29,15 +29,18 @@ evalAST (input, output) (Single cmd args fStdin fStdout fStderr) = do
 
   let searchPath = not ('/' `elem` cmd)
   let env = Nothing
-  if cmd == "cd"
-  then do
-    home <- getEnv "HOME"
-    let targetDir = fromMaybe home $ headMay args
-    let cd = setCurrentDirectory targetDir >> return ExitSuccess
-    let failed = hPutStrLn stderr ("cd: no such file or directory: " ++ targetDir) >> return (ExitFailure 1)
-    catch cd (\(_ :: IOException) -> failed)
-  else
-    forkWait $ executeFile cmd searchPath args env
+  let closeFiles = mapM_ hClose [input', output', err']
+  exitcode <- if cmd == "cd"
+              then do
+                home <- getEnv "HOME"
+                let targetDir = fromMaybe home $ headMay args
+                let cd = setCurrentDirectory targetDir >> return ExitSuccess
+                let failed = hPutStrLn stderr ("cd: no such file or directory: " ++ targetDir) >> return (ExitFailure 1)
+                catch cd (\(_ :: IOException) -> closeFiles >> failed)
+              else
+                forkWait $ executeFile cmd searchPath args env
+  closeFiles
+  return exitcode
 
 evalAST (input, output) (Piped leftAST rightAST) = do
   (readPipe, writePipe) <- createPipe
@@ -45,10 +48,13 @@ evalAST (input, output) (Piped leftAST rightAST) = do
   forkProcess $ do
     hClose readPipe -- こちらのプロセスでは不要なので閉じる
     evalAST (input, writePipe) leftAST
+    hClose writePipe
     return ()
   hClose writePipe -- こちらのプロセスでは不要なので閉じる
   -- 元プロセスで右のASTを実行
-  evalAST (readPipe, output) rightAST
+  exitcode <- evalAST (readPipe, output) rightAST
+  hClose readPipe
+  return exitcode
 
 evalAST handles (And leftAST rightAST) = do
   exitcode <- evalAST handles leftAST
