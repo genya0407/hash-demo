@@ -18,6 +18,7 @@ dependencies:
   - process
   - safe
   - directory
+  - haskeline
 
 executables:
   hash2:

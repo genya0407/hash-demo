@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 95ed9f32c0d1a283e0033b98b0490d44b7aacc5e52e95f96c256255acf8f7273
+-- hash: 3d368b012f2d50f9e03bf8b00bbdf8a9f96a5b7bf7411ab753326f041f6c6277
 
 name:           hash2
 version:        0.1.0.0
@@ -32,6 +32,7 @@ executable hash2
   build-depends:
       base >=4.7 && <5
     , directory
+    , haskeline
     , parsec
     , process
     , safe

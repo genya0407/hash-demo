@@ -7,29 +7,37 @@ import System.IO
 import System.Exit
 import Data.Maybe
 import Control.Exception
+import System.Console.Haskeline
+import Control.Monad.IO.Class (liftIO)
+
 import Hash.Parser (parseLine)
 import Hash.Evaluator (evalAST)
 
+prompt = fromMaybe "Hash> " <$> lookupEnv "PROMPT"
+inputSettings = Settings { complete = completeFilename, historyFile = Nothing, autoAddHistory = True }
+
 main :: IO ()
-main = do
-  -- プロンプトを表示
-  promptString <- fromMaybe "Hash> " <$> lookupEnv "PROMPT"
-  putStr promptString
-  hFlush stdout
+main = runInputT inputSettings repl
+  where
+    repl :: InputT IO ()
+    repl = do
+      -- プロンプトを表示 & 入力行を取得
+      minput <- liftIO prompt >>= getInputLine
 
-  -- 入力行を受け取る
-  line <- catch getLine $ \(_ :: IOException) -> exitWith ExitSuccess
-
-  -- パース & 実行
-  case parseLine line of
-    Left err -> print err
-    Right expr -> do
-      originalStdin <- hDuplicate stdin
-      originalStdout <- hDuplicate stdout
-      evalAST (stdin, stdout) expr
-      hFlush stdout
-      hDuplicateTo originalStdin stdin
-      hDuplicateTo originalStdout stdout
-
-  -- 始めに戻る
-  main
+      -- 行を構文解析 & 評価
+      case minput of
+        Nothing -> return () -- EOF
+        Just "" -> repl
+        Just line -> do
+          liftIO $ do
+            case parseLine line of
+              Left err -> print err
+              Right ast -> do
+                originalStdin <- hDuplicate stdin
+                originalStdout <- hDuplicate stdout
+                evalAST (stdin, stdout) ast
+                hFlush stdout
+                hDuplicateTo originalStdin stdin
+                hDuplicateTo originalStdout stdout
+                return ()
+          repl
