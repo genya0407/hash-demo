@@ -9,7 +9,8 @@ import System.Environment (getEnv)
 import System.Directory (setCurrentDirectory)
 import System.Posix.Process (forkProcess, executeFile, getProcessStatus, ProcessStatus(..))
 import Control.Exception (catch, IOException)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, catMaybes)
+import Data.Traversable (sequence)
 import Safe (headMay)
 
 import Hash.ShellAST (ShellAST(..))
@@ -18,18 +19,16 @@ import Hash.Utils (forkWait, hDuplicateTo')
 evalAST :: (Handle, Handle) -> ShellAST -> IO ExitCode
 evalAST (input, output) (Single cmd args fStdin fStdout fStderr) = do
   -- stdinとstdoutとstderrを差し替える
-  input' <- fromMaybe (return input) (flip openFile ReadMode <$> fStdin)
-  hDuplicateTo' input' stdin
-
-  output' <- fromMaybe (return output) (flip openFile WriteMode <$> fStdout)
-  hDuplicateTo' output' stdout
-
-  err' <- fromMaybe (return stderr) (flip openFile WriteMode <$> fStderr)
-  hDuplicateTo' err' stderr
+  fpStdin  <- sequence $ flip openFile ReadMode <$> fStdin
+  fpStdout <- sequence $ flip openFile WriteMode <$> fStdout
+  fpStderr <- sequence $ flip openFile WriteMode <$> fStderr
+  hDuplicateTo' (fromMaybe input  fpStdin) stdin
+  hDuplicateTo' (fromMaybe output fpStdout) stdout
+  hDuplicateTo' (fromMaybe stderr fpStderr) stderr
 
   let searchPath = not ('/' `elem` cmd)
   let env = Nothing
-  let closeFiles = mapM_ hClose [input', output', err']
+  let closeFiles = mapM_ hClose $ catMaybes [fpStdin, fpStdout, fpStderr]
   exitcode <- if cmd == "cd"
               then do
                 home <- getEnv "HOME"
