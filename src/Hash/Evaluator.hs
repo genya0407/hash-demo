@@ -10,6 +10,4 @@ evalAST :: ShellAST -> IO ExitCode
 evalAST (Single cmd args) = do
   let searchPath = not ('/' `elem` cmd)
   let env = Nothing
-  -- フォークして実行．ExitCodeを返す
-  exitcode <- forkWait $ executeFile cmd searchPath args env
-  return exitcode
+  executeFile cmd searchPath args env
