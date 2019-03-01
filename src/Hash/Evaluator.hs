@@ -19,25 +19,13 @@ import Hash.Utils (forkWait, hDuplicateTo', waitPid)
 --evalAST :: (Handle, Handle) -> ShellAST -> IO ExitCode
 --evalAST (input, output) (Single cmd args fStdin fStdout fStderr) = do
 evalAST :: ShellAST -> IO ExitCode
-evalAST (Single cmd args fStdin fStdout fStderr) = do
-  -- 元のファイルポインタを複製しておく
-  originalStdin <- hDuplicate stdin
-  originalStdout <- hDuplicate stdout
-  originalStderr <- hDuplicate stderr
-  -- ファイルポインタを差し替える
-  sequence $ (\hIO -> hIO >>= \h -> hDuplicateTo' h stdin  >> hClose h) . flip openFile ReadMode <$> fStdin
-  sequence $ (\hIO -> hIO >>= \h -> hDuplicateTo' h stdout >> hClose h) . flip openFile WriteMode <$> fStdout
-  sequence $ (\hIO -> hIO >>= \h -> hDuplicateTo' h stderr >> hClose h) . flip openFile WriteMode <$> fStderr
-
+evalAST (Single cmd args _ _ _) = do
   let searchPath = not ('/' `elem` cmd)
   let env = Nothing
+
   pid <- forkProcess $ do
     executeFile cmd searchPath args env
   exitcode <- waitPid pid
-  -- 差し替えたファイルポインタを元に戻す
-  hDuplicateTo' originalStdin stdin >> hClose originalStdin
-  hDuplicateTo' originalStdout stdout >> hClose originalStdout
-  hDuplicateTo' originalStderr stderr >> hClose originalStderr
 
   return exitcode
 
