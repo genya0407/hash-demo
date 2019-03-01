@@ -18,12 +18,11 @@ import Hash.Utils (forkWait, hDuplicateTo', waitPid)
 
 --evalAST :: (Handle, Handle) -> ShellAST -> IO ExitCode
 --evalAST (input, output) (Single cmd args fStdin fStdout fStderr) = do
-evalAST :: ShellAST -> IO ExitCode
-evalAST (Single cmd args fStdin fStdout fStderr) = do
-  -- 元のファイルポインタを複製しておく
-  originalStdin <- hDuplicate stdin
-  originalStdout <- hDuplicate stdout
-  originalStderr <- hDuplicate stderr
+evalAST :: (Handle, Handle) -> ShellAST -> IO ExitCode
+evalAST (input, output) (Single cmd args fStdin fStdout fStderr) = do
+  hDuplicateTo' input stdin
+  hDuplicateTo' output stdout
+
   -- ファイルポインタを差し替える
   sequence $ (\hIO -> hIO >>= \h -> hDuplicateTo' h stdin  >> hClose h) . flip openFile ReadMode <$> fStdin
   sequence $ (\hIO -> hIO >>= \h -> hDuplicateTo' h stdout >> hClose h) . flip openFile WriteMode <$> fStdout
@@ -34,10 +33,6 @@ evalAST (Single cmd args fStdin fStdout fStderr) = do
   pid <- forkProcess $ do
     executeFile cmd searchPath args env
   exitcode <- waitPid pid
-  -- 差し替えたファイルポインタを元に戻す
-  hDuplicateTo' originalStdin stdin >> hClose originalStdin
-  hDuplicateTo' originalStdout stdout >> hClose originalStdout
-  hDuplicateTo' originalStderr stderr >> hClose originalStderr
 
   return exitcode
 
@@ -51,19 +46,19 @@ evalAST (Single cmd args fStdin fStdout fStderr) = do
   --             else
   --               forkWait $ executeFile cmd searchPath args env
 
--- evalAST (input, output) (Piped leftAST rightAST) = do
---   (readPipe, writePipe) <- createPipe
---   -- フォークして左のASTを実行．
---   forkProcess $ do
---     hClose readPipe -- こちらのプロセスでは不要なので閉じる
---     evalAST (input, writePipe) leftAST
---     hClose writePipe
---     return ()
---   hClose writePipe -- こちらのプロセスでは不要なので閉じる
---   -- 元プロセスで右のASTを実行
---   exitcode <- evalAST (readPipe, output) rightAST
---   hClose readPipe
---   return exitcode
+evalAST (input, output) (Piped leftAST rightAST) = do
+  (readPipe, writePipe) <- createPipe
+  -- フォークして左のASTを実行．
+  forkProcess $ do
+    hClose readPipe -- こちらのプロセスでは不要なので閉じる
+    evalAST (input, writePipe) leftAST
+    hClose writePipe
+    return ()
+  hClose writePipe -- こちらのプロセスでは不要なので閉じる
+  -- 元プロセスで右のASTを実行
+  exitcode <- evalAST (readPipe, output) rightAST
+  hClose readPipe
+  return exitcode
 
 -- evalAST handles (And leftAST rightAST) = do
 --   exitcode <- evalAST handles leftAST
